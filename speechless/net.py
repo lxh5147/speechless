@@ -1,9 +1,10 @@
+from collections import OrderedDict
 from functools import reduce
 from pathlib import Path
+from typing import List, Callable, Iterable, Tuple, Dict, Optional
 
 import editdistance
 import numpy
-from collections import OrderedDict
 from keras import backend
 from keras.callbacks import Callback, TensorBoard
 from keras.engine import Input, Layer, Model
@@ -12,7 +13,6 @@ from keras.models import Sequential
 from keras.optimizers import Optimizer, Adam
 from lazy import lazy
 from numpy import ndarray, zeros, array, reshape, random, concatenate
-from typing import List, Callable, Iterable, Tuple, Dict, Optional
 
 from speechless.grapheme_enconding import CtcGraphemeEncoding, AsgGraphemeEncoding
 from speechless.labeled_example import LabeledSpectrogram
@@ -144,7 +144,9 @@ class Wav2Letter:
                  asg_transition_probabilities: Optional[ndarray] = None,
                  asg_initial_probabilities: Optional[ndarray] = None,
                  # LM for decoder
-                 kenlm_directory: Path = None):
+                 kenlm_directory: Path = None,
+                 # if and only if it is in batch mode, right context (information in a future step) can be used
+                 is_batch_mode: bool = True,):
 
         if frozen_layer_count > 0 and load_model_from_directory is None:
             raise ValueError("Layers cannot be frozen if model is trained from scratch.")
@@ -185,6 +187,8 @@ class Wav2Letter:
             self.load_weights(
                 allowed_characters_for_loaded_model, load_epoch, load_model_from_directory,
                 loaded_first_layers_count=frozen_layer_count if reinitialize_trainable_loaded_layers else None)
+
+        self.is_batch_mode = is_batch_mode
 
     @staticmethod
     def indices_to_load_by_target_index(allowed_characters_for_loaded_model: List[chr],
@@ -303,12 +307,14 @@ class Wav2Letter:
                         activation: str = self.activation,
                         input_dim: int = None,
                         never_dropout: bool = False) -> List[Layer]:
+            # the padding is set to *causal* if at step i we cannot use information in future step
+            padding = 'same' if self.is_batch_mode else 'causal'
             # input drop out
             return ([] if self.dropout is None or never_dropout else [
                 Dropout(self.dropout, input_shape=(None, input_dim),
                         name="dropout_before_{}".format(name))]) + [
                        Conv1D(filters=filter_count, kernel_size=filter_length, strides=strides,
-                              activation=activation, name=name, input_shape=(None, input_dim), padding="same")]
+                              activation=activation, name=name, input_shape=(None, input_dim), padding=padding)]
 
         main_filter_count = 250
 

@@ -42,7 +42,9 @@ class Configuration:
                  directories: DataDirectories = default_data_directories,
                  mel_frequency_count: int = 128,
                  training_batches_per_epoch: int = 100,
-                 batch_size: int = 64):
+                 batch_size: int = 64,
+                 # if and only if it is in batch mode, right context (information in a future step) can be used
+                 is_batch_mode:bool=True):
         # how many batches per epoch
         self.training_batches_per_epoch = training_batches_per_epoch
         # number of Mel bands to generate
@@ -55,6 +57,7 @@ class Configuration:
         self.allowed_characters = allowed_characters
         # how many training samples are processed per mini batch
         self.batch_size = batch_size
+        self.is_batch_mode = is_batch_mode
 
     @lazy
     def corpus(self) -> Corpus:
@@ -106,7 +109,9 @@ class Configuration:
     def train_from_beginning(self):
         from speechless.net import Wav2Letter
 
-        wav2letter = Wav2Letter(self.mel_frequency_count, allowed_characters=self.allowed_characters)
+        wav2letter = Wav2Letter(self.mel_frequency_count,
+                                allowed_characters=self.allowed_characters,
+                                is_batch_mode = self.is_batch_mode)
 
         self.train(wav2letter,
                    run_name=timestamp() + "-adam-small-learning-rate-complete-training-{}{}".format(
@@ -180,7 +185,8 @@ class Configuration:
             kenlm_directory=(
                 self.directories.kenlm_base_directory / (
                     self.name.lower() + language_model_name_extension)) if use_kenlm else None,
-            reinitialize_trainable_loaded_layers=reinitialize_trainable_loaded_layers)
+            reinitialize_trainable_loaded_layers=reinitialize_trainable_loaded_layers,
+            is_batch_mode=self.is_batch_mode)
 
     def load_best_english_model(self,
                                 frozen_layer_count: int = 0,
