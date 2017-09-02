@@ -15,8 +15,10 @@ from speechless.tools import timestamp, mkdir
 class Recorder:
     def __init__(self,
                  silence_threshold_for_unnormalized_audio: float = .03,
+                 # 1024/16 = 64 ms per chunk
                  chunk_size: int = 1024,
                  sample_rate: int = 16000,
+                 # no voice in 3 seconds, stop recording
                  silence_until_terminate_in_s: int = 3):
         self.silence_threshold_for_not_normalized_sound = silence_threshold_for_unnormalized_audio
         self.chunk_size = chunk_size

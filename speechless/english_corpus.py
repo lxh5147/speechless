@@ -16,6 +16,7 @@ from speechless.corpus import Corpus, TrainingTestSplit, ComposedCorpus
 from speechless.labeled_example import LabeledExample, PositionalLabel, LabeledExampleFromFile
 from speechless.tools import mkdir, name_without_extension, count_summary, distinct, extension, log
 
+# 26 chars + ' ' + ''', in total 28 chars
 english_frequent_characters = list(string.ascii_lowercase + " '")
 
 
@@ -35,10 +36,12 @@ class LibriSpeechCorpus(Corpus):
                      List[LabeledExample], List[LabeledExample]]] = TrainingTestSplit.randomly(),
                  maximum_example_duration_in_s: Optional[int] = None,
                  minimum_duration_per_character: Optional[float] = None):
+        # average minimum character duration, used to filter too short examples
         self.minimum_duration_per_character_in_s = minimum_duration_per_character
         self.maximum_example_duration_in_s = maximum_example_duration_in_s
         self.training_test_split = training_test_split
         self.id_filter_regex = id_filter_regex
+        # those tags in the label will be ignored
         self.tags_to_ignore = tags_to_ignore
         self.allowed_characters = allowed_characters
         self.subdirectory_depth = subdirectory_depth

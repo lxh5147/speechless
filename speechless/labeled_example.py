@@ -13,12 +13,14 @@ from typing import List, Optional, Tuple, Callable
 
 from speechless.tools import name_without_extension, mkdir, write_text, log
 
+# This is the place where pyaudio is heavily used
 
+# how we devide the frequency bank, linear or mf
 class SpectrogramFrequencyScale(Enum):
     linear = "linear"
     mel = "mel"
 
-
+# how we calculate the power of a frequency band
 class SpectrogramType(Enum):
     power = "power"
     amplitude = "amplitude"
@@ -42,11 +44,13 @@ class PositionalLabel:
         self.label = " ".join(word for word in self.labels)
 
     def convert_range_to_seconds(self, original_sample_rate: int) -> 'PositionalLabel':
+        # start: the start frame (in time domain)
         return PositionalLabel(list(
             (word, (start_end[0] / original_sample_rate, start_end[1] / original_sample_rate))
             for word, start_end in self.labeled_sections))
 
     def with_corrected_labels(self, correction: Callable[[str], str]) -> 'PositionalLabel':
+        # section is the label of that section
         return PositionalLabel([(correction(section), range) for section, range in self.labeled_sections])
 
     def serialize(self) -> str:
@@ -59,7 +63,7 @@ class PositionalLabel:
                                     for label, start, end in
                                     map(lambda item: item.split("|"), serialized.splitlines())))
 
-
+# a transformed example in frequency domain
 class LabeledSpectrogram:
     __metaclass__ = ABCMeta
 
@@ -77,7 +81,9 @@ class LabeledExample(LabeledSpectrogram):
                  sample_rate: int = 16000,
                  id: Optional[str] = None,
                  label: Optional[str] = "nolabel",
+                 # 32 frames
                  fourier_window_length: int = 512,
+                 # or 128/16 = 8 ms
                  hop_length: int = 128,
                  mel_frequency_count: int = 128,
                  label_with_tags: str = None,
@@ -130,15 +136,18 @@ class LabeledExample(LabeledSpectrogram):
             raise ValueError(type)
 
         s = spectrogram_by_type()
-
+        # TODO: simplify it:
+        # time_series, sample_rate = librosa.core.load("7a.wav",sr=20000)
+        # librosa.feature.melspectrogram(time_series, sr=20000, n_mels=23, n_fft=500, hop_length=200)
         return self._convert_spectrogram_to_mel_scale(s) if frequency_scale == SpectrogramFrequencyScale.mel else s
 
+    # each sample is normalized independently, across frames
     def z_normalized_transposed_spectrogram(self):
         """
         :return: Array with shape (time, frequencies)
         """
         return z_normalize(self.spectrogram(frequency_scale=SpectrogramFrequencyScale.mel).T)
-
+    # shape of the spectrogram : number of bank * time steps
     def frequency_count_from_spectrogram(self, spectrogram: ndarray) -> int:
         return spectrogram.shape[0]
 
@@ -229,10 +238,10 @@ class LabeledExampleFromFile(LabeledExample):
                 sample_rate=self.sample_rate,
                 fourier_window_length=self.fourier_window_length, hop_length=self.hop_length,
                 mel_frequency_count=self.mel_frequency_count)
-
+        # fine grained samples, each section corresponds to one sample
         return [section(label, start, end) for label, (start, end) in self.positional_label.labeled_sections]
 
-
+# use pre-compuated spectrogram to speed up the training
 class CachedLabeledSpectrogram(LabeledSpectrogram):
     def __init__(self, original: LabeledSpectrogram, spectrogram_cache_directory: Path):
         super().__init__(id=original.id, label=original.label)

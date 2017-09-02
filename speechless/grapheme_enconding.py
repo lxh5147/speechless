@@ -12,12 +12,14 @@ class GraphemeEncodingBase:
         self.grapheme_set_size = self.allowed_character_count + special_grapheme_count
         self.graphemes_by_character = dict((char, index) for index, char in enumerate(allowed_characters))
 
+    # encode: to map a char to an integer, or its id
     def encode_character(self, label_char: chr) -> int:
         try:
             return self.graphemes_by_character[label_char]
         except:
             raise ValueError("Unexpected char: '{}'".format(label_char))
 
+    # map a sequence of chars to a sequence of grapheme ids
     @abstractmethod
     def encode(self, label: str) -> List[int]:
         pass
@@ -32,6 +34,7 @@ class GraphemeEncodingBase:
         return label_batch
 
     def decode_graphemes(self, graphemes: List[int], merge_repeated: bool = True) -> str:
+        # remove repeated grapheme, for example 1 1 1 2 1 --> 1 2 1
         if merge_repeated:
             graphemes = [k for k, g in groupby(graphemes)]
         return "".join([self.decode_grapheme(grapheme,
@@ -64,7 +67,7 @@ class GraphemeEncodingBase:
 class AsgGraphemeEncoding(GraphemeEncodingBase):
     def __init__(self, allowed_characters: List[chr]):
         super().__init__(allowed_characters, special_grapheme_count=2)
-
+        # two special graphemes: twice and thrice
         self.asg_twice = self.grapheme_set_size - 2
         self.asg_thrice = self.grapheme_set_size - 1
 
@@ -121,7 +124,7 @@ class AsgGraphemeEncoding(GraphemeEncodingBase):
 class CtcGraphemeEncoding(GraphemeEncodingBase):
     def __init__(self, allowed_characters: List[chr]):
         super().__init__(allowed_characters, special_grapheme_count=1)
-
+        # one special grapheme: ctc_blank, which is different from ' '
         # ctc blank must be last (see Tensorflow's ctcloss documentation):
         self.ctc_blank = self.grapheme_set_size - 1
 

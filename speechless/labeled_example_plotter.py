@@ -9,6 +9,7 @@ from numpy import ndarray
 from speechless.labeled_example import LabeledExample, SpectrogramType, SpectrogramFrequencyScale
 
 
+# to visualize a wave sample
 class LabeledExamplePlotter:
     def __init__(self, example: LabeledExample):
         self.example = example

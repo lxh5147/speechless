@@ -113,7 +113,7 @@ class ExpectationsVsPredictionsInGroupedBatches(ExpectationsVsPredictions):
         groups_summary = "\n".join(group_summaries)
         return "\n\n{}\n\nAll corpora: {}\n\n".format(groups_summary, self.summary_line())
 
-
+# the model
 class Wav2Letter:
     """Speech-recognition network based on wav2letter (https://arxiv.org/pdf/1609.03193v2.pdf)."""
 
@@ -126,6 +126,7 @@ class Wav2Letter:
     def __init__(self,
                  input_size_per_time_step: int,
                  allowed_characters: List[chr],
+                 # use raw wave or mfcc features
                  use_raw_wave_input: bool = False,
                  activation: str = "relu",
                  output_activation: str = "softmax",
@@ -133,12 +134,16 @@ class Wav2Letter:
                  dropout: Optional[float] = None,
                  load_model_from_directory: Optional[Path] = None,
                  load_epoch: Optional[int] = None,
+                 # the same as the allowed characters?
                  allowed_characters_for_loaded_model: Optional[List[chr]] = None,
+                 # for frozen layers, we don't change it
                  frozen_layer_count: int = 0,
                  reinitialize_trainable_loaded_layers: bool = False,
+                 # when to use asg?
                  use_asg: bool = False,
                  asg_transition_probabilities: Optional[ndarray] = None,
                  asg_initial_probabilities: Optional[ndarray] = None,
+                 # LM for decoder
                  kenlm_directory: Path = None):
 
         if frozen_layer_count > 0 and load_model_from_directory is None:
@@ -298,6 +303,7 @@ class Wav2Letter:
                         activation: str = self.activation,
                         input_dim: int = None,
                         never_dropout: bool = False) -> List[Layer]:
+            # input drop out
             return ([] if self.dropout is None or never_dropout else [
                 Dropout(self.dropout, input_shape=(None, input_dim),
                         name="dropout_before_{}".format(name))]) + [
@@ -307,6 +313,7 @@ class Wav2Letter:
         main_filter_count = 250
 
         def input_convolutions() -> List[Conv1D]:
+            # raw wave 16K frames in time domain, use a large stride
             raw_wave_convolution_if_needed = convolution(
                 "wave_conv", filter_count=main_filter_count, filter_length=250, strides=160,
                 input_dim=self.input_size_per_time_step) if self.use_raw_wave_input else []
@@ -405,6 +412,7 @@ class Wav2Letter:
         return backend.ctc_batch_cost(y_true=label_batch, y_pred=prediction_batch,
                                       input_length=prediction_lengths, label_length=label_lengths)
 
+    # Build predictive net, loss net and decode net, respectively
     @lazy
     def decoding_net(self):
         decoding_layer = Lambda(self._decode_lambda, name='ctc_decode')

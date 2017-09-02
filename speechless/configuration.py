@@ -43,7 +43,9 @@ class Configuration:
                  mel_frequency_count: int = 128,
                  training_batches_per_epoch: int = 100,
                  batch_size: int = 64):
+        # how many batches per epoch
         self.training_batches_per_epoch = training_batches_per_epoch
+        # number of Mel bands to generate
         self.mel_frequency_count = mel_frequency_count
         self.name = name
         self.directories = directories
@@ -51,6 +53,7 @@ class Configuration:
         self.corpus_directory = directories.corpus_base_directory / name
         self.corpus_from_directory = corpus_from_directory
         self.allowed_characters = allowed_characters
+        # how many training samples are processed per mini batch
         self.batch_size = batch_size
 
     @lazy
@@ -171,7 +174,9 @@ class Configuration:
             load_model_from_directory=self.directories.nets_base_directory / load_name,
             load_epoch=load_epoch,
             allowed_characters_for_loaded_model=allowed_characters_for_loaded_model,
+            # some layers are not allowed to change
             frozen_layer_count=frozen_layer_count,
+            #kenlm directory, and kenlm is an efficient way to query a LM model
             kenlm_directory=(
                 self.directories.kenlm_base_directory / (
                     self.name.lower() + language_model_name_extension)) if use_kenlm else None,

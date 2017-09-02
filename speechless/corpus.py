@@ -30,6 +30,7 @@ class Corpus:
                  test_examples: List[LabeledExample],
                  sampled_training_example_count: Optional[int] = None):
 
+        # a corpus has : training examples and test examples
         self.training_examples = training_examples if sampled_training_example_count is None else \
             random.Random(42).sample(training_examples, sampled_training_example_count)
 
@@ -39,7 +40,7 @@ class Corpus:
 
         log("Training on {} examples, testing on {} examples.".format(
             len(self.training_examples), len(self.test_examples)))
-
+        # a training sample has an id, unique identifier
         duplicate_training_ids = duplicates(e.id for e in training_examples)
         if len(duplicate_training_ids) > 0:
             raise ValueError("Duplicate ids in training examples: {}".format(duplicate_training_ids))
@@ -71,6 +72,7 @@ class Corpus:
 
     def save(self, corpus_csv_file: Path, use_relative_audio_file_paths: bool = True):
         import csv
+        # encoding: utf8
         with corpus_csv_file.open('w', encoding='utf8') as opened_csv:
             writer = csv.writer(opened_csv, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
@@ -94,9 +96,11 @@ class Corpus:
                 return audio_file_path if audio_file_path.is_absolute() else Path(
                     corpus_csv_file.parent) / audio_file_path
 
+            # positional_label: fine grained alignment?
             examples = [
                 (
                     LabeledExampleFromFile(
+                        # lazy mode to load the audio
                         audio_file=to_absolute(Path(audio_file_path)), id=id, label=label,
                         positional_label=None if positional_label == "" else PositionalLabel.deserialize(
                             positional_label)), Phase[phase])
