@@ -146,6 +146,7 @@ class LabeledExample(LabeledSpectrogram):
         """
         :return: Array with shape (time, frequencies)
         """
+        # transposed: time steps * frame (frequency bins), normalization inside a frame
         return z_normalize(self.spectrogram(frequency_scale=SpectrogramFrequencyScale.mel).T)
     # shape of the spectrogram : number of bank * time steps
     def frequency_count_from_spectrogram(self, spectrogram: ndarray) -> int:
